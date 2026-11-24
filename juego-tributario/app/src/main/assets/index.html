@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Reto Tributario</title>
+<style>
+  :root {
+    --azul: #0F4C81; --azul2: #1B6CB5; --oro: #F2B705; --verde: #1E9E5A;
+    --rojo: #D64545; --fondo: #EEF3F9; --texto: #1C2B3A; --gris: #6B7A8C;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--fondo); color: var(--texto);
+    display: flex; flex-direction: column; user-select: none;
+  }
+  .screen { display: none; flex: 1; flex-direction: column; padding: 20px 16px; overflow-y: auto; }
+  .screen.active { display: flex; }
+
+  /* Menu */
+  .hero { text-align: center; margin-top: 24px; }
+  .logo { font-size: 72px; line-height: 1; }
+  h1 { color: var(--azul); font-size: 30px; margin: 12px 0 4px; }
+  .sub { color: var(--gris); font-size: 16px; margin: 0 0 24px; }
+  .record { background: #fff; border-radius: 16px; padding: 14px; text-align: center;
+            font-size: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(15,76,129,.08); }
+  .record b { color: var(--azul); font-size: 22px; }
+  .btn {
+    display: block; width: 100%; border: 0; border-radius: 16px; padding: 18px 16px;
+    font-size: 19px; font-weight: 700; margin-bottom: 14px; color: #fff; background: var(--azul);
+    box-shadow: 0 4px 0 #0A3459; text-align: left;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #0A3459; }
+  .btn small { display: block; font-weight: 400; font-size: 14px; opacity: .85; margin-top: 2px; }
+  .btn.oro { background: var(--oro); color: #3A2B00; box-shadow: 0 4px 0 #A87F00; }
+  .btn.claro { background: #fff; color: var(--azul); box-shadow: 0 4px 0 #C9D8EA; text-align: center; }
+
+  /* Game */
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .pill { background: #fff; border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 16px;
+          box-shadow: 0 2px 6px rgba(15,76,129,.08); }
+  .progress { height: 8px; background: #D5E0EC; border-radius: 99px; overflow: hidden; margin-bottom: 18px; }
+  .progress > div { height: 100%; background: var(--oro); width: 0; transition: width .3s; }
+  .card { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 4px 14px rgba(15,76,129,.10); margin-bottom: 16px; }
+  .tag { display: inline-block; font-size: 13px; font-weight: 700; color: var(--azul2);
+         background: #E3EEF9; padding: 4px 10px; border-radius: 99px; margin-bottom: 10px; }
+  .question { font-size: 20px; font-weight: 700; line-height: 1.35; margin: 0; }
+  .opt {
+    display: block; width: 100%; text-align: left; background: #fff; border: 2px solid #D5E0EC;
+    border-radius: 14px; padding: 16px; font-size: 17px; margin-bottom: 10px; color: var(--texto);
+  }
+  .opt:active { background: #F3F7FC; }
+  .opt.ok { border-color: var(--verde); background: #E6F6ED; }
+  .opt.bad { border-color: var(--rojo); background: #FCEAEA; }
+  .opt:disabled { opacity: 1; }
+  .feedback { display: none; border-radius: 14px; padding: 14px 16px; font-size: 16px; line-height: 1.4; margin-bottom: 14px; }
+  .feedback.ok { display: block; background: #E6F6ED; color: #145C37; }
+  .feedback.bad { display: block; background: #FCEAEA; color: #8A2323; }
+  .timer { height: 6px; background: #E3EEF9; border-radius: 99px; overflow: hidden; margin-top: 14px; }
+  .timer > div { height: 100%; background: var(--azul2); width: 100%; }
+
+  /* Results */
+  .result { text-align: center; margin-top: 20px; }
+  .big { font-size: 64px; }
+  .score { font-size: 44px; font-weight: 800; color: var(--azul); margin: 6px 0; }
+  .rank { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .stats { color: var(--gris); margin-bottom: 24px; font-size: 16px; }
+
+  /* Learn */
+  .tip { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 12px; font-size: 16px; line-height: 1.45;
+         box-shadow: 0 2px 8px rgba(15,76,129,.06); }
+  .tip b { color: var(--azul); display: block; margin-bottom: 4px; font-size: 17px; }
+  h2 { color: var(--azul); margin: 4px 0 16px; }
+  .note { color: var(--gris); font-size: 13px; text-align: center; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<!-- MENU -->
+<section id="menu" class="screen active">
+  <div class="hero">
+    <div class="logo">🧾</div>
+    <h1>Reto Tributario</h1>
+    <p class="sub">¡Aprende impuestos jugando!</p>
+  </div>
+  <div class="record">Mejor puntaje: <b id="best">0</b></div>
+  <button class="btn" onclick="startGame('quiz')">📚 Trivia Fiscal<small>10 preguntas · 3 vidas</small></button>
+  <button class="btn oro" onclick="startGame('calc')">🧮 Calcula el IGV<small>Contra reloj · 15 segundos</small></button>
+  <button class="btn" style="background:var(--verde);box-shadow:0 4px 0 #136B3C" onclick="startGame('caso')">🏪 ¿Qué haría el contribuyente?<small>Casos de un pequeño negocio</small></button>
+  <button class="btn claro" onclick="show('learn')">💡 Aprende lo básico</button>
+  <p class="note">Juego educativo. Tasas de referencia de Perú (IGV 18%). No es asesoría tributaria.</p>
+</section>
+
+<!-- GAME -->
+<section id="game" class="screen">
+  <div class="topbar">
+    <span class="pill" id="lives">❤️❤️❤️</span>
+    <span class="pill" id="count">1/10</span>
+    <span class="pill">⭐ <span id="pts">0</span></span>
+  </div>
+  <div class="progress"><div id="bar"></div></div>
+  <div class="card">
+    <span class="tag" id="tag">Tema</span>
+    <p class="question" id="q">Pregunta</p>
+    <div class="timer" id="timerWrap"><div id="timer"></div></div>
+  </div>
+  <div id="opts"></div>
+  <div class="feedback" id="fb"></div>
+  <button class="btn" id="next" style="display:none;text-align:center" onclick="nextQ()">Siguiente ➜</button>
+</section>
+
+<!-- RESULT -->
+<section id="result" class="screen">
+  <div class="result">
+    <div class="big" id="rEmoji">🏆</div>
+    <div class="rank" id="rRank">Contador Experto</div>
+    <div class="score" id="rScore">0</div>
+    <div class="stats" id="rStats">8 de 10 correctas</div>
+    <div class="stats" id="rNew" style="color:var(--verde);font-weight:700"></div>
+  </div>
+  <button class="btn oro" style="text-align:center" onclick="startGame(mode)">🔁 Jugar otra vez</button>
+  <button class="btn claro" onclick="goMenu()">🏠 Menú principal</button>
+</section>
+
+<!-- LEARN -->
+<section id="learn" class="screen">
+  <h2>💡 Lo básico</h2>
+  <div class="tip"><b>¿Qué es un tributo?</b>Es un pago obligatorio al Estado para financiar servicios públicos. Hay tres tipos: impuestos, contribuciones y tasas.</div>
+  <div class="tip"><b>IGV (18%)</b>Impuesto General a las Ventas. Se suma al precio de venta. Si un producto vale S/ 100 sin IGV, el cliente paga S/ 118.</div>
+  <div class="tip"><b>Crédito fiscal</b>El IGV que pagas en tus compras del negocio se resta del IGV de tus ventas. Pagas solo la diferencia.</div>
+  <div class="tip"><b>RUC</b>Registro Único de Contribuyentes: el número que identifica a personas y empresas ante la SUNAT.</div>
+  <div class="tip"><b>Boleta vs. Factura</b>La boleta es para consumidores finales. La factura es para empresas o negocios con RUC y permite usar crédito fiscal.</div>
+  <div class="tip"><b>Impuesto a la Renta</b>Grava las ganancias (ingresos menos gastos permitidos) de personas y empresas.</div>
+  <div class="tip"><b>Declarar a tiempo</b>Cada mes se declara según el cronograma de la SUNAT (último dígito del RUC). Declarar tarde genera multas e intereses.</div>
+  <div class="tip"><b>Evasión vs. planificación</b>Ocultar ingresos es evasión (delito). Usar los beneficios que da la ley de forma correcta es planificación tributaria.</div>
+  <button class="btn claro" onclick="goMenu()">⬅ Volver</button>
+</section>
+
+<script>
+const QUIZ = [
+  {t:"Conceptos", q:"¿Qué es un tributo?", o:["Un pago obligatorio al Estado","Una donación voluntaria","Un préstamo al banco","Un ahorro personal"], a:0, e:"Los tributos son pagos obligatorios que financian servicios públicos como salud, educación y seguridad."},
+  {t:"Conceptos", q:"¿Cuáles son los tres tipos de tributos?", o:["Impuestos, contribuciones y tasas","Multas, intereses y moras","Sueldos, bonos y gratificaciones","Ventas, compras y gastos"], a:0, e:"Impuestos (sin contraprestación directa), contribuciones (beneficio por obras) y tasas (por un servicio público)."},
+  {t:"IGV", q:"¿Cuál es la tasa total del IGV en Perú?", o:["10%","18%","21%","30%"], a:1, e:"La tasa total es 18% (16% IGV + 2% Impuesto de Promoción Municipal)."},
+  {t:"IGV", q:"¿Quién paga finalmente el IGV?", o:["El consumidor final","Solo el fabricante","El banco","El Estado"], a:0, e:"El IGV se traslada en la cadena de ventas y lo asume el consumidor final."},
+  {t:"IGV", q:"¿Qué es el crédito fiscal?", o:["Un préstamo de la SUNAT","El IGV de tus compras que restas del IGV de tus ventas","Una tarjeta de crédito para pagar impuestos","Un descuento por pagar en efectivo"], a:1, e:"El crédito fiscal evita pagar impuesto sobre impuesto: solo pagas la diferencia."},
+  {t:"Comprobantes", q:"Un cliente con RUC quiere usar crédito fiscal. ¿Qué comprobante le entregas?", o:["Boleta de venta","Ticket simple","Factura","Recibo a mano sin datos"], a:2, e:"La factura permite al comprador sustentar gasto y usar el crédito fiscal del IGV."},
+  {t:"Comprobantes", q:"¿Para quién es la boleta de venta?", o:["Para el consumidor final","Para exportaciones","Para el banco","Solo para el Estado"], a:0, e:"La boleta se emite a consumidores finales, que no usan crédito fiscal."},
+  {t:"Comprobantes", q:"¿Por qué es importante pedir comprobante de pago?", o:["No es importante","Ayuda a combatir la evasión y formalizar","Para tener más papeles","Para pagar más caro"], a:1, e:"Pedir comprobante asegura que el vendedor declare y que el impuesto llegue al Estado."},
+  {t:"Registro", q:"¿Qué significa RUC?", o:["Registro Único de Contribuyentes","Recibo Único de Compras","Registro Urbano Comercial","Renta Única Calculada"], a:0, e:"El RUC identifica a cada contribuyente ante la SUNAT."},
+  {t:"Registro", q:"¿Qué entidad administra los tributos internos en Perú?", o:["BCRP","SUNAT","SBS","INDECOPI"], a:1, e:"La SUNAT (Superintendencia Nacional de Aduanas y de Administración Tributaria)."},
+  {t:"Renta", q:"El Impuesto a la Renta grava principalmente…", o:["Las ganancias o ingresos","Solo las compras","Las donaciones recibidas del Estado","El uso de agua"], a:0, e:"Grava las rentas: ganancias de empresas, sueldos, alquileres, etc."},
+  {t:"Renta", q:"Para una empresa, la renta neta es…", o:["Ingresos más gastos","Ingresos menos gastos deducibles","Solo los ingresos","Solo los gastos"], a:1, e:"Renta neta = ingresos − costos y gastos permitidos por ley."},
+  {t:"Obligaciones", q:"¿Qué pasa si declaras tus impuestos fuera de plazo?", o:["Nada","Te dan un premio","Puedes recibir multa e intereses","Te devuelven el dinero"], a:2, e:"Declarar tarde es una infracción: genera multas e intereses moratorios."},
+  {t:"Obligaciones", q:"¿De qué depende tu fecha de vencimiento mensual en la SUNAT?", o:["De tu cumpleaños","Del último dígito de tu RUC","Del color de tu local","Del clima"], a:1, e:"El cronograma de vencimientos se ordena según el último dígito del RUC."},
+  {t:"Ética fiscal", q:"Ocultar ventas para pagar menos impuestos es…", o:["Planificación tributaria","Evasión tributaria","Un derecho","Una deducción"], a:1, e:"Es evasión, una infracción grave que incluso puede ser delito."},
+  {t:"Ética fiscal", q:"Usar correctamente un beneficio que la ley permite es…", o:["Evasión","Planificación tributaria","Contrabando","Fraude"], a:1, e:"La planificación tributaria es legal: aprovecha opciones que la ley ofrece."},
+  {t:"Tasas", q:"Pagar por sacar tu partida de nacimiento en la municipalidad es una…", o:["Tasa","Contribución","Multa","Renta"], a:0, e:"Las tasas se pagan por un servicio público concreto, como un trámite."},
+  {t:"Conceptos", q:"¿Para qué usa el Estado lo que recauda?", o:["Hospitales, colegios, pistas y seguridad","Solo para sueldos de la SUNAT","No lo usa","Para comprar acciones"], a:0, e:"La recaudación financia servicios y obras públicas para toda la población."},
+  {t:"Renta", q:"Un trabajador independiente que emite recibos por honorarios genera renta de…", o:["Primera categoría","Cuarta categoría","Tercera categoría","No genera renta"], a:1, e:"Los independientes generan renta de cuarta categoría; los empleados, de quinta."},
+  {t:"Renta", q:"Las ganancias de un negocio o empresa son renta de…", o:["Primera categoría","Segunda categoría","Tercera categoría","Quinta categoría"], a:2, e:"La actividad empresarial genera renta de tercera categoría."},
+];
+
+const CASOS = [
+  {t:"Tu bodega", q:"Abres una bodega. ¿Qué haces primero para formalizarte?", o:["Vender sin registrarte","Sacar tu RUC en la SUNAT","Esperar a que te visiten","Pedir prestado un RUC"], a:1, e:"Inscribirte en el RUC es el primer paso para operar formalmente."},
+  {t:"Tu bodega", q:"Vendes S/ 50 a un vecino que no pide comprobante. ¿Qué haces?", o:["No entregas nada","Le entregas boleta igual","Le cobras más","Lo anotas en un papel y lo botas"], a:1, e:"Debes emitir comprobante en cada venta (según los montos que exige la norma), lo pidan o no."},
+  {t:"Tu bodega", q:"Compras mercadería para tu negocio. ¿Qué comprobante pides?", o:["Factura a nombre de tu RUC","Boleta sin nombre","Nada","Un ticket de otra persona"], a:0, e:"Con factura a tu RUC sustentas el gasto y usas el crédito fiscal."},
+  {t:"Tu bodega", q:"Se acerca tu fecha de vencimiento y no tienes ventas este mes. ¿Qué haces?", o:["No declaras nada","Declaras igual, aunque sea en cero","Cierras el RUC","Declaras el próximo año"], a:1, e:"Aunque no tengas ventas, debes presentar tu declaración mensual."},
+  {t:"Tu taller", q:"Un proveedor te ofrece descuento si compras 'sin factura'. ¿Qué haces?", o:["Aceptas feliz","Prefieres comprar con factura","Le pides que te dé factura de otro","Compras y no registras"], a:1, e:"Sin factura pierdes crédito fiscal, no sustentas el gasto y apoyas la informalidad."},
+  {t:"Tu taller", q:"Tus ventas del mes tienen IGV de S/ 900 y tus compras IGV de S/ 600. ¿Cuánto IGV pagas?", o:["S/ 1,500","S/ 900","S/ 300","S/ 600"], a:2, e:"IGV por pagar = 900 (ventas) − 600 (crédito fiscal) = S/ 300."},
+  {t:"Tu taller", q:"Contratas a un ayudante a tiempo completo. ¿Cómo lo registras?", o:["En planilla, como trabajador","No lo registras","Le pides recibos por honorarios aunque sea fijo","Le pagas en productos"], a:0, e:"Un trabajador dependiente debe estar en planilla con sus beneficios y aportes."},
+  {t:"Tu tienda online", q:"Empiezas a vender por redes sociales. ¿Tus ventas pagan impuestos?", o:["No, internet es libre","Sí, igual que una tienda física","Solo si vendes al extranjero","Solo en diciembre"], a:1, e:"Las ventas por internet son ventas: deben tener comprobante y declararse."},
+  {t:"Tu tienda online", q:"Te olvidaste de declarar un mes. ¿Qué es lo mejor?", o:["Esconderlo","Regularizar cuanto antes","Cambiar de RUC","Esperar a que prescriba"], a:1, e:"Regularizar voluntariamente y rápido suele reducir multas (régimen de gradualidad)."},
+  {t:"Tu tienda online", q:"Guardas tus comprobantes y libros contables porque…", o:["Ocupan espacio","La SUNAT puede revisarlos durante años","Son bonitos","No es necesario"], a:1, e:"Debes conservar tu documentación mientras la deuda tributaria no prescriba."},
+];
+
+let mode = 'quiz', list = [], idx = 0, pts = 0, lives = 3, correct = 0, total = 10, tmr = null, tLeft = 0, answered = false;
+
+const $ = id => document.getElementById(id);
+function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); $(id).classList.add('active'); window.scrollTo(0,0); }
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function money(n) { return "S/ " + n.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+function getBest() { try { return +localStorage.getItem('best') || 0; } catch (e) { return 0; } }
+function setBest(v) { try { localStorage.setItem('best', v); } catch (e) {} }
+$('best').textContent = getBest();
+
+function makeCalc() {
+  const base = (Math.floor(Math.random() * 40) + 1) * 25;   // 25 .. 1000
+  const igv = Math.round(base * 0.18 * 100) / 100;
+  const types = [
+    {q:`Un producto cuesta ${money(base)} sin IGV. ¿Cuánto es el IGV (18%)?`, ans: igv, e:`${money(base)} × 18% = ${money(igv)}`},
+    {q:`Un producto cuesta ${money(base)} sin IGV. ¿Cuál es el precio final con IGV?`, ans: base + igv, e:`${money(base)} + ${money(igv)} de IGV = ${money(base + igv)}`},
+    {q:`El precio final con IGV es ${money(base + igv)}. ¿Cuál es el valor sin IGV?`, ans: base, e:`${money(base + igv)} ÷ 1.18 = ${money(base)}`},
+  ];
+  const k = types[Math.floor(Math.random() * types.length)];
+  const set = new Set([k.ans.toFixed(2)]);
+  const wrong = [k.ans * 1.1, k.ans * 0.82, k.ans + 18, k.ans * 1.18, k.ans - 10, k.ans * 0.9];
+  for (const w of shuffle(wrong)) { if (set.size >= 4) break; if (w > 0) set.add((Math.round(w * 100) / 100).toFixed(2)); }
+  const opts = shuffle([...set]);
+  return {t:"Cálculo de IGV", q:k.q, o:opts.map(v => money(+v)), a:opts.indexOf(k.ans.toFixed(2)), e:k.e};
+}
+
+function startGame(m) {
+  mode = m; idx = 0; pts = 0; lives = 3; correct = 0; total = 10;
+  if (m === 'quiz') list = shuffle(QUIZ).slice(0, total);
+  else if (m === 'caso') list = shuffle(CASOS).slice(0, total);
+  else list = Array.from({length: total}, makeCalc);
+  // shuffle options of each question while keeping track of the answer
+  list = list.map(it => {
+    const order = shuffle(it.o.map((_, i) => i));
+    return {...it, o: order.map(i => it.o[i]), a: order.indexOf(it.a)};
+  });
+  show('game'); render();
+}
+
+function render() {
+  answered = false;
+  const it = list[idx];
+  $('lives').textContent = '❤️'.repeat(lives) + '🤍'.repeat(3 - lives);
+  $('count').textContent = `${idx + 1}/${total}`;
+  $('pts').textContent = pts;
+  $('bar').style.width = (idx / total * 100) + '%';
+  $('tag').textContent = it.t;
+  $('q').textContent = it.q;
+  $('fb').className = 'feedback'; $('fb').textContent = '';
+  $('next').style.display = 'none';
+  const box = $('opts'); box.innerHTML = '';
+  it.o.forEach((txt, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt'; b.textContent = txt;
+    b.onclick = () => answer(i);
+    box.appendChild(b);
+  });
+  clearInterval(tmr);
+  const timed = mode === 'calc';
+  $('timerWrap').style.display = timed ? 'block' : 'none';
+  if (timed) {
+    tLeft = 150;
+    $('timer').style.width = '100%';
+    tmr = setInterval(() => {
+      tLeft--; $('timer').style.width = (tLeft / 150 * 100) + '%';
+      if (tLeft <= 0) { clearInterval(tmr); answer(-1); }
+    }, 100);
+  }
+}
+
+function answer(i) {
+  if (answered) return;
+  answered = true; clearInterval(tmr);
+  const it = list[idx];
+  const btns = $('opts').children;
+  for (const b of btns) b.disabled = true;
+  btns[it.a].classList.add('ok');
+  const fb = $('fb');
+  if (i === it.a) {
+    correct++;
+    const bonus = mode === 'calc' ? Math.ceil(tLeft / 15) * 10 : 0;
+    pts += 100 + bonus;
+    fb.className = 'feedback ok';
+    fb.textContent = '✅ ¡Correcto!' + (bonus ? ` +${bonus} por rapidez. ` : ' ') + it.e;
+    vibrate(30);
+  } else {
+    if (i >= 0) btns[i].classList.add('bad');
+    lives--;
+    fb.className = 'feedback bad';
+    fb.textContent = (i < 0 ? '⏰ ¡Se acabó el tiempo! ' : '❌ Incorrecto. ') + it.e;
+    vibrate([60, 40, 60]);
+  }
+  $('pts').textContent = pts;
+  $('lives').textContent = '❤️'.repeat(Math.max(lives, 0)) + '🤍'.repeat(3 - Math.max(lives, 0));
+  const last = idx + 1 >= total || lives <= 0;
+  $('next').textContent = last ? 'Ver resultado 🏁' : 'Siguiente ➜';
+  $('next').style.display = 'block';
+  setTimeout(() => $('next').scrollIntoView({behavior: 'smooth', block: 'end'}), 50);
+}
+
+function nextQ() {
+  if (idx + 1 >= total || lives <= 0) return finish();
+  idx++; render();
+}
+
+function finish() {
+  $('bar').style.width = '100%';
+  const ratio = correct / total;
+  let emoji, rank;
+  if (ratio >= 0.9) { emoji = '🏆'; rank = 'Experto Tributario'; }
+  else if (ratio >= 0.7) { emoji = '🥇'; rank = 'Contador Estrella'; }
+  else if (ratio >= 0.5) { emoji = '📈'; rank = 'Contribuyente Responsable'; }
+  else { emoji = '📘'; rank = 'Aprendiz Fiscal'; }
+  if (lives <= 0) { emoji = '💸'; rank += ' (sin vidas)'; }
+  $('rEmoji').textContent = emoji;
+  $('rRank').textContent = rank;
+  $('rScore').textContent = pts + ' pts';
+  $('rStats').textContent = `${correct} de ${idx + 1} respuestas correctas`;
+  const best = getBest();
+  if (pts > best) { setBest(pts); $('rNew').textContent = '🎉 ¡Nuevo récord!'; } else $('rNew').textContent = '';
+  show('result');
+}
+
+function goMenu() { clearInterval(tmr); $('best').textContent = getBest(); show('menu'); }
+function vibrate(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
+
+// Called by the Android back button.
+window.handleBack = function () {
+  if ($('menu').classList.contains('active')) return 'exit';
+  goMenu(); return 'stay';
+};
+</script>
+</body>
+</html>
